@@ -8,11 +8,11 @@ const message=text=>{info.textContent=text};
 function loggedOut(){document.body.classList.add("cloud-locked");login.classList.remove("hide");logout.classList.add("hide");message("Mit deiner E-Mail-Adresse anmelden, um deinen persönlichen Urlaubsplan zu öffnen.");hint.textContent="Du erhältst einen einmaligen Anmeldelink. Keine Passwörter nötig."}
 function loggedIn(email){login.classList.add("hide");logout.classList.remove("hide");message("Angemeldet als "+email);hint.textContent="Deine Daten werden geschützt online gespeichert und bleiben auch nach dem Löschen des Browserverlaufs erhalten."}
 if(!enabled){
-  login.classList.add("hide");
+  login.classList.remove("hide");loginButton.disabled=true;
   message("Online-Anmeldung ist noch nicht eingerichtet – derzeit nur lokale Speicherung!");
   hint.textContent="Achtung: Beim Löschen von Browserdaten können Urlaubseinträge verloren gehen. Erst mit eingerichteter Cloud-Datenbank sind sie dauerhaft online gesichert.";
 }else if(!validURL){
-  document.body.classList.add("cloud-locked");login.classList.add("hide");
+  document.body.classList.add("cloud-locked");login.classList.remove("hide");loginButton.disabled=true;
   message("Ungültige Cloud-Einstellungen. HTTPS-Adresse erforderlich.");
 }else{
   document.body.classList.add("cloud-locked");
@@ -52,7 +52,7 @@ if(!enabled){
       const uid=session.user.id;
       const {data:row,error}=await client.from("vacation_plans").select("data").eq("user_id",uid).maybeSingle();
       if(token!==loadToken)return;
-      if(error){message("Online-Daten konnten nicht geladen werden: "+error.message);login.classList.add("hide");return}
+      if(error){message("Online-Daten konnten nicht geladen werden: "+error.message+". Bitte Seite neu laden.");login.classList.remove("hide");return}
       const plan=row?.data||window.urlaubDefaults();
       if(!plan.settings?.["2027"]||!plan.settings?.["2028"]||!Array.isArray(plan.entries)){message("Ungültige gespeicherte Urlaubsdaten.");return}
       userId=uid;
@@ -88,5 +88,5 @@ if(!enabled){
     window.addEventListener("beforeunload",event=>{
       if(pending){event.preventDefault();event.returnValue=""}
     });
-  }catch(e){document.body.classList.add("cloud-locked");login.classList.add("hide");message("Anmeldedienst konnte nicht gestartet werden: "+e.message)}
+  }catch(e){document.body.classList.add("cloud-locked");login.classList.remove("hide");loginButton.disabled=true;message("Anmeldedienst konnte nicht gestartet werden: "+e.message+". Bitte Internetverbindung prüfen und die Seite neu laden.")}
 }
