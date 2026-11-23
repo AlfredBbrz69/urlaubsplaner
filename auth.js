@@ -5,13 +5,14 @@ const info=$("accountInfo"),login=$("loginForm"),logout=$("logoutForm"),hint=$("
 const passwordLoginButton = $("passwordLoginButton");
 const loginPassword = $("loginPassword");
 const passwordForm = $("passwordForm");
+const showPasswordButton = $("showPasswordButton");
 const newPassword = $("newPassword");
 const passwordStatus = $("passwordStatus");
 const savePasswordButton = $("savePasswordButton");
 const enabled=Boolean(cfg.url&&cfg.anonKey);
 const validURL=(()=>{try{return new URL(cfg.url).protocol==="https:"}catch{return false}})();
 const message=text=>{info.textContent=text};
-function loggedOut(){if(loginPassword)loginPassword.value="";if(passwordForm){passwordForm.reset();passwordStatus.textContent="";}document.body.classList.add("cloud-locked");login.classList.remove("hide");logout.classList.add("hide");message("Mit deiner E-Mail-Adresse anmelden, um deinen persönlichen Urlaubsplan zu öffnen.");hint.textContent="Beim ersten Mal oder bei vergessenem Passwort kannst du einen Anmeldelink anfordern."}
+function loggedOut(){if(loginPassword)loginPassword.value="";if(passwordForm){passwordForm.reset();passwordForm.classList.add("hide");passwordStatus.textContent="";}if(showPasswordButton)showPasswordButton.classList.add("hide");document.body.classList.add("cloud-locked");login.classList.remove("hide");logout.classList.add("hide");message("Mit deiner E-Mail-Adresse anmelden, um deinen persönlichen Urlaubsplan zu öffnen.");hint.textContent="Beim ersten Mal oder bei vergessenem Passwort kannst du einen Anmeldelink anfordern."}
 function loggedIn(email){login.classList.add("hide");logout.classList.remove("hide");message("Angemeldet als "+email);hint.textContent="Deine Daten werden geschützt online gespeichert und bleiben auch nach dem Löschen des Browserverlaufs erhalten."}
 if(!enabled){
   login.classList.remove("hide");loginButton.disabled=true;if(passwordLoginButton)passwordLoginButton.disabled=true;
@@ -58,6 +59,8 @@ if(!enabled){
       const uid = accountId;
       loggedIn(session.user.email || "dein Konto");
       passwordForm.classList.add("hide");
+      showPasswordButton.classList.add("hide");
+      passwordStatus.textContent="";
       message("Dein Konto wird geprüft …");
 
       const { data: hasPassword, error: passwordCheckError } = await client.rpc("vacation_plan_has_password");
@@ -67,7 +70,8 @@ if(!enabled){
         return;
       }
 
-      passwordForm.classList.remove("hide");
+      passwordForm.classList.toggle("hide",Boolean(hasPassword));
+      showPasswordButton.classList.toggle("hide",!hasPassword);
       $("passwordTitle").textContent = hasPassword ? "Passwort ändern" : "Passwort festlegen";
       if (!hasPassword) {
         message("E-Mail-Adresse bestätigt. Lege jetzt ein Passwort fest, um deinen Urlaubsplan zu öffnen.");
@@ -111,6 +115,12 @@ if(!enabled){
         }
       };
     }
+    if (showPasswordButton) showPasswordButton.onclick = () => {
+      passwordStatus.textContent = "";
+      passwordForm.classList.remove("hide");
+      showPasswordButton.classList.add("hide");
+      newPassword.focus();
+    };
     if (passwordForm) {
       passwordForm.onsubmit = async event => {
         event.preventDefault();
@@ -130,7 +140,9 @@ if(!enabled){
             await load(session);
           }
           if (uid !== accountId) return;
-          passwordStatus.textContent = "Passwort gespeichert. Du kannst dich künftig mit E-Mail und Passwort anmelden.";
+          passwordForm.classList.add("hide");
+          showPasswordButton.classList.remove("hide");
+          passwordStatus.textContent = "Passwort erfolgreich geändert. Du kannst dich künftig mit E-Mail und Passwort anmelden.";
         } catch (error) {
           passwordStatus.textContent = "Passwort konnte nicht gespeichert werden. " + error.message;
         } finally {
