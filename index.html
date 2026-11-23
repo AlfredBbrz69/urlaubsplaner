@@ -85,6 +85,7 @@ function escapeHTML(s){return s.replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;","
 let editing=-1;
 function editEntry(i){q("vacationDetails").open=true;let e=data.entries[i];editing=i;q("from").value=e.from;q("to").value=e.to;q("status").value=e.status;q("reason").value=e.reason;q("add").textContent="Änderung speichern";q("vacationDetails").scrollIntoView({behavior:"smooth",block:"start"})}
 let toastTimer;function showSaveToast(text){const el=q("saveToast");el.textContent=text;el.hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>{el.hidden=true},3800)}
+window.urlaubShowToast=showSaveToast;
 function removeEntry(i){if(confirm("Diesen Urlaubseintrag wirklich löschen?")){data.entries.splice(i,1);save();render()}}
 q("add").onclick=()=>{let from=q("from").value,to=q("to").value,status=q("status").value,reason=q("reason").value.trim();let msg="";if(!from||!to)msg="Bitte beide Daten eingeben.";else if(to<from)msg="Bis darf nicht vor Von liegen.";else if(from.slice(0,4)!==to.slice(0,4)||+from.slice(0,4)!==+data.year)msg="Bitte nur Daten innerhalb des ausgewählten Jahres eintragen.";else if(data.entries.some((e,i)=>i!==editing&&from<=e.to&&to>=e.from))msg="Überschneidung mit einem vorhandenen Eintrag!";if(msg){q("message").textContent=msg;return}let e={from,to,status,reason};if(editing<0)data.entries.push(e);else data.entries[editing]=e;editing=-1;q("add").textContent="Zeitraum hinzufügen";q("message").textContent="";q("from").value=q("to").value=q("reason").value="";save();render();q("vacationDetails").open=false;showSaveToast(window.URLAUB_AUTH_CONFIG?.url?"Eintrag übernommen – Online-Speicherung läuft …":"Urlaubseintrag gespeichert")};
 for(let id of ["name","area"]){q(id).onchange=()=>{data[id]=q(id).value;save()}}
@@ -97,4 +98,4 @@ q("import").onchange=async e=>{let file=e.target.files[0];if(!file)return;try{le
 q("copyAppLink").onclick=async()=>{const url=location.origin+location.pathname;try{await navigator.clipboard.writeText(url);q("copyLinkMessage").textContent="Link kopiert: "+url}catch{q("copyLinkMessage").textContent="Bitte diesen Link kopieren: "+url}};
 for(const details of document.querySelectorAll(".fold-panel"))details.addEventListener("toggle",()=>{details.querySelector(".fold-hint").textContent=details.open?"Tippen zum Einklappen":"Tippen zum Öffnen"});
 q("print").onclick=()=>window.print();if("serviceWorker" in navigator && location.protocol.startsWith("http")) navigator.serviceWorker.register("./service-worker.js").catch(()=>{});render();
-</script><script type="module" src="./auth.js?v=20261123-9"></script></body></html>
+</script><script type="module" src="./auth.js?v=20261123-11"></script></body></html>
