@@ -5,6 +5,9 @@ const info=$("accountInfo"),login=$("loginForm"),logout=$("logoutForm"),hint=$("
 const passwordLoginButton = $("passwordLoginButton");
 const loginPassword = $("loginPassword");
 const passwordForm = $("passwordForm");
+const accountDetails = $("accountDetails");
+const accountSummaryHint = $("accountSummaryHint");
+if(accountDetails)accountDetails.addEventListener("toggle",()=>{accountSummaryHint.textContent=accountDetails.open?"Tippen zum Einklappen":"Tippen zum Öffnen"});
 const showPasswordButton = $("showPasswordButton");
 const newPassword = $("newPassword");
 const passwordStatus = $("passwordStatus");
@@ -12,7 +15,7 @@ const savePasswordButton = $("savePasswordButton");
 const enabled=Boolean(cfg.url&&cfg.anonKey);
 const validURL=(()=>{try{return new URL(cfg.url).protocol==="https:"}catch{return false}})();
 const message=text=>{info.textContent=text};
-function loggedOut(){if(loginPassword)loginPassword.value="";if(passwordForm){passwordForm.reset();passwordForm.classList.add("hide");passwordStatus.textContent="";}if(showPasswordButton)showPasswordButton.classList.add("hide");document.body.classList.add("cloud-locked");login.classList.remove("hide");logout.classList.add("hide");message("Mit deiner E-Mail-Adresse anmelden, um deinen persönlichen Urlaubsplan zu öffnen.");hint.textContent="Beim ersten Mal oder bei vergessenem Passwort kannst du einen Anmeldelink anfordern."}
+function loggedOut(){if(accountDetails)accountDetails.open=true;if(loginPassword)loginPassword.value="";if(passwordForm){passwordForm.reset();passwordForm.classList.add("hide");passwordStatus.textContent="";}if(showPasswordButton)showPasswordButton.classList.add("hide");document.body.classList.add("cloud-locked");login.classList.remove("hide");logout.classList.add("hide");message("Mit deiner E-Mail-Adresse anmelden, um deinen persönlichen Urlaubsplan zu öffnen.");hint.textContent="Beim ersten Mal oder bei vergessenem Passwort kannst du einen Anmeldelink anfordern."}
 function loggedIn(email){login.classList.add("hide");logout.classList.remove("hide");message("Angemeldet als "+email);hint.textContent="Deine Daten werden geschützt online gespeichert und bleiben auch nach dem Löschen des Browserverlaufs erhalten."}
 if(!enabled){
   login.classList.remove("hide");loginButton.disabled=true;if(passwordLoginButton)passwordLoginButton.disabled=true;
@@ -88,6 +91,7 @@ if(!enabled){
       window.urlaubSetData(plan);
       loggedIn(session.user.email||"dein Konto");
       document.body.classList.remove("cloud-locked");
+      if(accountDetails)accountDetails.open=false;
     }
     if (passwordLoginButton) {
       login.onsubmit = async event => {
@@ -143,6 +147,7 @@ if(!enabled){
           passwordForm.classList.add("hide");
           showPasswordButton.classList.remove("hide");
           passwordStatus.textContent = "Passwort erfolgreich geändert. Du kannst dich künftig mit E-Mail und Passwort anmelden.";
+          if(accountDetails)accountDetails.open=false;
         } catch (error) {
           passwordStatus.textContent = "Passwort konnte nicht gespeichert werden. " + error.message;
         } finally {
