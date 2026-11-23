@@ -11,7 +11,7 @@ const savePasswordButton = $("savePasswordButton");
 const enabled=Boolean(cfg.url&&cfg.anonKey);
 const validURL=(()=>{try{return new URL(cfg.url).protocol==="https:"}catch{return false}})();
 const message=text=>{info.textContent=text};
-function loggedOut(){if(loginPassword)loginPassword.value="";if(passwordForm){passwordForm.reset();passwordStatus.textContent="";$("passwordSettings").open=false;}document.body.classList.add("cloud-locked");login.classList.remove("hide");logout.classList.add("hide");message("Mit deiner E-Mail-Adresse anmelden, um deinen persönlichen Urlaubsplan zu öffnen.");hint.textContent="Beim ersten Mal oder bei vergessenem Passwort kannst du einen Anmeldelink anfordern."}
+function loggedOut(){if(loginPassword)loginPassword.value="";if(passwordForm){passwordForm.reset();passwordStatus.textContent="";}document.body.classList.add("cloud-locked");login.classList.remove("hide");logout.classList.add("hide");message("Mit deiner E-Mail-Adresse anmelden, um deinen persönlichen Urlaubsplan zu öffnen.");hint.textContent="Beim ersten Mal oder bei vergessenem Passwort kannst du einen Anmeldelink anfordern."}
 function loggedIn(email){login.classList.add("hide");logout.classList.remove("hide");message("Angemeldet als "+email);hint.textContent="Deine Daten werden geschützt online gespeichert und bleiben auch nach dem Löschen des Browserverlaufs erhalten."}
 if(!enabled){
   login.classList.remove("hide");loginButton.disabled=true;if(passwordLoginButton)passwordLoginButton.disabled=true;
@@ -26,7 +26,7 @@ if(!enabled){
   try{
     const {createClient}=await import("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm");
     const client=createClient(cfg.url,cfg.anonKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
-    let userId=null,pending=null,timer=null,writeQueue=Promise.resolve(),loadToken=0;
+    let userId=null,accountId=null,pending=null,timer=null,writeQueue=Promise.resolve(),loadToken=0;
     async function persist(snapshot,uid){
       if(!uid)throw Error("Nicht angemeldet.");
       writeQueue=writeQueue.catch(()=>{}).then(async()=>{
@@ -53,9 +53,28 @@ if(!enabled){
       if(timer!==null)clearTimeout(timer);
       timer=null;pending=null;userId=null;
       document.body.classList.add("cloud-locked");
-      if(!session?.user){loggedOut();return}
+      accountId = session?.user?.id ?? null;
+      if (!accountId) { loggedOut(); return; }
+      const uid = accountId;
+      loggedIn(session.user.email || "dein Konto");
+      passwordForm.classList.add("hide");
+      message("Dein Konto wird geprüft …");
+
+      const { data: hasPassword, error: passwordCheckError } = await client.rpc("vacation_plan_has_password");
+      if (token !== loadToken) return;
+      if (passwordCheckError) {
+        message("Dein Konto konnte nicht geprüft werden. Bitte lade die Seite neu.");
+        return;
+      }
+
+      passwordForm.classList.remove("hide");
+      $("passwordTitle").textContent = hasPassword ? "Passwort ändern" : "Passwort festlegen";
+      if (!hasPassword) {
+        message("E-Mail-Adresse bestätigt. Lege jetzt ein Passwort fest, um deinen Urlaubsplan zu öffnen.");
+        hint.textContent = "Beim nächsten Mal kannst du dich direkt mit E-Mail-Adresse und Passwort anmelden.";
+        return;
+      }
       message("Deine Urlaubsdaten werden online geladen …");
-      const uid=session.user.id;
       const {data:row,error}=await client.from("vacation_plans").select("data").eq("user_id",uid).maybeSingle();
       if(token!==loadToken)return;
       if(error){message("Online-Daten konnten nicht geladen werden: "+error.message+". Bitte Seite neu laden.");login.classList.remove("hide");return}
@@ -95,13 +114,22 @@ if(!enabled){
     if (passwordForm) {
       passwordForm.onsubmit = async event => {
         event.preventDefault();
-        if (!userId || newPassword.value.length < 8) return;
+        if (!accountId || newPassword.value.length < 8) return;
+        const uid = accountId;
         savePasswordButton.disabled = true;
         passwordStatus.textContent = "Passwort wird gespeichert …";
         try {
           const { error } = await client.auth.updateUser({ password: newPassword.value });
           if (error) throw error;
+          if (uid !== accountId) return;
           passwordForm.reset();
+          if (!userId) {
+            const { data: { session }, error: sessionError } = await client.auth.getSession();
+            if (sessionError) throw sessionError;
+            if (session?.user?.id !== uid || accountId !== uid) return;
+            await load(session);
+          }
+          if (uid !== accountId) return;
           passwordStatus.textContent = "Passwort gespeichert. Du kannst dich künftig mit E-Mail und Passwort anmelden.";
         } catch (error) {
           passwordStatus.textContent = "Passwort konnte nicht gespeichert werden. " + error.message;
@@ -132,8 +160,8 @@ if(!enabled){
     if(error)throw error;
     await load(session);
     client.auth.onAuthStateChange((event,session)=>{
-      if(event==="SIGNED_IN"&&session?.user?.id!==userId)setTimeout(()=>load(session),0);
-      if(event==="SIGNED_OUT"){++loadToken;userId=null;loggedOut()}
+      if(event==="SIGNED_IN"&&session?.user?.id!==accountId)setTimeout(()=>load(session),0);
+      if(event==="SIGNED_OUT"){++loadToken;accountId=null;userId=null;loggedOut()}
     });
     window.addEventListener("beforeunload",event=>{
       if(pending){event.preventDefault();event.returnValue=""}
