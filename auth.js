@@ -39,6 +39,7 @@ if(!enabled){
       });
       await writeQueue;
       message("Angemeldet – Urlaubsdaten online gespeichert.");
+      if(typeof window.urlaubShowToast==="function")window.urlaubShowToast("✓ Urlaubsdaten online gespeichert");
     }
     async function flush(){
       if(timer!==null){clearTimeout(timer);timer=null}
@@ -50,7 +51,7 @@ if(!enabled){
       pending=JSON.parse(JSON.stringify(value));
       if(timer!==null)clearTimeout(timer);
       message("Änderungen werden online gespeichert …");
-      timer=setTimeout(async()=>{timer=null;const snapshot=pending;pending=null;if(snapshot)try{await persist(snapshot,userId)}catch(e){message("Online-Speicherung fehlgeschlagen: "+e.message+". Bitte JSON-Sicherung erstellen.")}},350);
+      timer=setTimeout(async()=>{timer=null;const snapshot=pending;pending=null;if(snapshot)try{await persist(snapshot,userId)}catch(e){message("Online-Speicherung fehlgeschlagen: "+e.message+". Bitte JSON-Sicherung erstellen.");if(typeof window.urlaubShowToast==="function")window.urlaubShowToast("⚠ Online-Speicherung fehlgeschlagen – bitte prüfen")}},350);
     };
     async function load(session){
       const token=++loadToken;
